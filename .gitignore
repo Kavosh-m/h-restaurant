@@ -19,3 +19,10 @@ node_modules/
 
 # files
 package-lock.json
+.buckconfig
+.editorconfig
+.eslintrc.js
+.flowconfig
+.prettierrc.js
+.watchmanconfig
+app.json
