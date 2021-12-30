@@ -1,0 +1,21 @@
+# OSX
+#
+.DS_Store
+
+__tests__/
+
+# VSCode
+.vscode/
+
+# Android
+android/
+
+# ios
+ios/
+
+# node.js
+#
+node_modules/
+
+# files
+package-lock.json
