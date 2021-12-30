@@ -21,6 +21,7 @@ node_modules/
 package-lock.json
 .buckconfig
 .editorconfig
+.env
 .eslintrc.js
 .flowconfig
 .prettierrc.js

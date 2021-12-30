@@ -8,12 +8,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import {fontTypeBold, fontTypeRegular} from '../../../constants/fonts';
-import {arrowRightBlack} from '../../../constants/images';
+import {fontTypeRegular} from '../../../constants/fonts';
 import {
   responsiveHeight,
   responsiveWidth,
-  responsiveFontSize,
 } from 'react-native-responsive-dimensions';
 import {Shadow} from 'react-native-neomorph-shadows';
 import firestore from '@react-native-firebase/firestore';
@@ -219,7 +217,11 @@ const Card = ({
               foodType: foodType,
             })
           }>
-          <Image source={arrowRightBlack} />
+          <MaterialCommunityIcons
+            name="chevron-right"
+            color="#00000080"
+            size={responsiveWidth(11 / 1.7)}
+          />
         </Pressable>
       </Shadow>
     </View>

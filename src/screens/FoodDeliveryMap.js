@@ -12,9 +12,9 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fontTypeRegular, resFontSize} from '../../constants/fonts';
 import MapSmileyMarkerIcon from '../component/Home/MapSmileyMarkerIcon';
+import {MAPBOX_PUBLIC_ACCESS_TOKEN} from '@env';
 
-const ACCESS_TOKEN =
-  'pk.eyJ1IjoicmVtb3RlNjltYXBwZXIiLCJhIjoiY2tzc3NxaDg2MDZ5czJ2cGMxb25ubGlsNiJ9.Qdnr5ON3k9oxg_O52ulf9Q';
+const ACCESS_TOKEN = MAPBOX_PUBLIC_ACCESS_TOKEN;
 MapboxGL.setAccessToken(ACCESS_TOKEN);
 
 const mapStyles = [

@@ -30,6 +30,7 @@ import MenuIcon from '../component/Home/MenuIcon';
 import SearchIcon from '../component/Home/SearchIcon';
 import BasketIcon from '../component/Home/BasketIcon';
 import {resFontSize} from '../../constants/fonts';
+import {MAPBOX_PUBLIC_ACCESS_TOKEN} from '@env';
 import {FloatingLabelInput} from 'react-native-floating-label-input';
 // import Animated, {
 //   FadeOutUp,
@@ -41,8 +42,7 @@ import {FloatingLabelInput} from 'react-native-floating-label-input';
 //   ZoomOutUp,
 // } from 'react-native-reanimated';
 
-const ACCESS_TOKEN =
-  'pk.eyJ1IjoicmVtb3RlNjltYXBwZXIiLCJhIjoiY2tzc3NxaDg2MDZ5czJ2cGMxb25ubGlsNiJ9.Qdnr5ON3k9oxg_O52ulf9Q';
+const ACCESS_TOKEN = MAPBOX_PUBLIC_ACCESS_TOKEN;
 
 const HeaderMainState = ({navigation, handleSearchButton}) => {
   return (

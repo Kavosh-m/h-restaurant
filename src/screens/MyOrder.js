@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,7 @@ import axios from 'axios';
 import {SkypeIndicator} from 'react-native-indicators';
 import BasketIcon from '../component/Home/BasketIcon';
 import {Shadow} from 'react-native-neomorph-shadows';
+import {ZARINPAL_MERCHANT_ID} from '@env';
 import Animated, {RollOutLeft, Layout} from 'react-native-reanimated';
 
 const Top = ({clear, cart}) => {
@@ -138,12 +139,11 @@ const Bottom = ({totalPrice, cart, navigation}) => {
 
   const handleNavigateToPayment = async price => {
     if (price !== 0 && price) {
-      // navigation.navigate('Payment',{totalPrice:totalPrice})
       setBuyClicked(true);
 
       axios
         .post('https://api.zarinpal.com/pg/v4/payment/request.json', {
-          merchant_id: '595d03ba-f849-11e8-897c-005056a205be',
+          merchant_id: ZARINPAL_MERCHANT_ID,
           amount: price.toFixed(2) * 10000,
           description: 'Payment bill for Happy Restaurant',
           callback_url: 'return://zarinpal',
@@ -183,12 +183,6 @@ const Bottom = ({totalPrice, cart, navigation}) => {
         });
     } else {
       ToastAndroid.show('Order something', ToastAndroid.SHORT);
-      // showMessage({
-      //   message: 'Order something!',
-      //   type: 'info',
-      //   icon: 'info',
-      //   backgroundColor: 'purple',
-      // });
     }
   };
 
