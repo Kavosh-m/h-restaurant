@@ -17,6 +17,7 @@ import {
   GET_FOOD_ITEM_COMMENTS,
   NUMBER_ITEM_CHANGE,
   FOOD_SIZE_NUMBER_STATUS,
+  GET_USER_POSITION,
 } from '../constants';
 
 export function fetchUser() {
@@ -242,6 +243,15 @@ export function fetch_user_address(address) {
     dispatch({
       type: USER_DESCRIPTIVE_ADDRESS,
       userAddress: address,
+    });
+  };
+}
+
+export function fetch_user_position(pos) {
+  return dispatch => {
+    dispatch({
+      type: GET_USER_POSITION,
+      userPosition: pos,
     });
   };
 }

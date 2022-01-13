@@ -1,5 +1,12 @@
-import React, {useState, useEffect} from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import React, {useState, useEffect, useRef} from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  PermissionsAndroid,
+  ToastAndroid,
+  StyleSheet,
+} from 'react-native';
 import {
   responsiveHeight,
   responsiveWidth,
@@ -13,6 +20,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fontTypeRegular, resFontSize} from '../../constants/fonts';
 import MapSmileyMarkerIcon from '../component/Home/MapSmileyMarkerIcon';
 import {MAPBOX_PUBLIC_ACCESS_TOKEN} from '@env';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Geolocation from 'react-native-geolocation-service';
+import {connect} from 'react-redux';
+import {bindActionCreators} from 'redux';
+import {fetch_user_address} from '../../redux/actions';
+import BasketIcon from '../component/Home/BasketIcon';
+import FireIcon from '../component/Home/FireIcon';
 
 const ACCESS_TOKEN = MAPBOX_PUBLIC_ACCESS_TOKEN;
 MapboxGL.setAccessToken(ACCESS_TOKEN);
@@ -28,11 +42,23 @@ const mapStyles = [
   'mapbox://styles/mapbox/navigation-night-v1',
 ];
 
-const FoodDeliveryMap = () => {
-  const [address, setAdress] = useState(null);
-  const [lat, setLat] = useState(null);
-  const [lon, setLon] = useState(null);
-  const [coordExist, setCoordExist] = useState(false);
+const FoodDeliveryMap = ({fetch_user_address, userPosition, userAddress}) => {
+  const [address, setAdress] = useState(userAddress);
+  const [lat, setLat] = useState(userPosition.latitude);
+  const [lon, setLon] = useState(userPosition.longitude);
+  const [zoom, setZoom] = useState(userPosition.zoom);
+  const [coordExist, setCoordExist] = useState(userPosition.positionExist);
+  const [fakeLon, setFakeLon] = useState(53);
+  const [fakeLat, setFakeLat] = useState(36);
+
+  const cameraRef = useRef();
+  const mapRef = useRef();
+
+  const goTo = () => {
+    setFakeLon(fakeLon - 1);
+    setFakeLat(fakeLat - 1);
+    cameraRef.current.flyTo([fakeLon, fakeLat], 20000);
+  };
 
   const handle_getting_address = async () => {
     const cor = await AsyncStorage.getItem('@coordinates');
@@ -56,28 +82,109 @@ const FoodDeliveryMap = () => {
     }
   };
 
-  useEffect(() => {
-    handle_getting_address();
-  }, [coordExist]);
+  const geo_success = async position => {
+    let url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${position.coords.longitude},${position.coords.latitude}.json?access_token=${ACCESS_TOKEN}`;
+    setLat(position.coords.latitude);
+    setLon(position.coords.longitude);
 
-  if (!coordExist) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-        <WaveIndicator size={60} color="blue" />
-      </View>
+    axios
+      .get(url)
+      .then(({data}) => {
+        fetch_user_address(
+          data.features[0].place_name.slice(
+            0,
+            data.features[0].place_name.lastIndexOf(','),
+          ),
+        );
+        setAdress(data.features[0].place_name);
+        setCoordExist(true);
+        // cameraRef.current.flyTo([lon, lat], 6000);
+        // cameraRef.current.zoomTo(12);
+        cameraRef.current.setCamera({
+          centerCoordinate: [lon, lat],
+          zoomLevel: 14,
+          animationDuration: 2000,
+        });
+        setZoom(14);
+      })
+      .catch(err => {
+        ToastAndroid.show(
+          'Fetching address is not possible!',
+          ToastAndroid.LONG,
+        );
+      });
+  };
+
+  // get called when location not retrieved
+  const geo_failure = error => {
+    switch (error.code) {
+      case 1:
+        ToastAndroid.show(
+          'Location permission is not granted',
+          ToastAndroid.LONG,
+        );
+        break;
+      case 2:
+        ToastAndroid.show('Location provider not available', ToastAndroid.LONG);
+        break;
+      case 3:
+        ToastAndroid.show('Location request timed out', ToastAndroid.LONG);
+        break;
+      case 4:
+        ToastAndroid.show(
+          'Google play service is not installed or has an older version',
+          ToastAndroid.LONG,
+        );
+        break;
+      case 5:
+        ToastAndroid.show(
+          'Location service is not enabled or location mode is not appropriate for the current request',
+          ToastAndroid.LONG,
+        );
+        break;
+      case -1:
+        ToastAndroid.show('Library crashed for some reason', ToastAndroid.LONG);
+        break;
+      default:
+        ToastAndroid.show(
+          'Something went wrong with Geolocation service',
+          ToastAndroid.LONG,
+        );
+    }
+  };
+
+  const handleGettingUserLocation = async () => {
+    //Handle location permission first
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      {
+        title: 'Device location Permission',
+        message: 'This App needs access to your location',
+        buttonNeutral: 'Ask Me Later',
+        buttonNegative: 'Cancel',
+        buttonPositive: 'OK',
+      },
     );
-  }
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      let geoOptions = {
+        enableHighAccuracy: true,
+        timeOut: 15000,
+        maximumAge: 10000,
+      };
+      Geolocation.getCurrentPosition(geo_success, geo_failure, geoOptions);
+    }
+  };
+
+  useEffect(() => {
+    // handle_getting_address();
+    console.log(`lon: ${lon}\nlat: ${lat}\n address: ${address}`);
+  }, [coordExist, address]);
 
   return (
     <View style={styles.container}>
       <View style={styles.mapContainer}>
         <MapboxGL.MapView
-          // ref={mapRef}
+          ref={mapRef}
           style={styles.map}
           styleURL={mapStyles[0]}
           tintColor="pink"
@@ -86,24 +193,55 @@ const FoodDeliveryMap = () => {
           logoEnabled={false}
           compassEnabled={true}
           surfaceView={false}>
-          <MapboxGL.PointAnnotation id="1" coordinate={[lon, lat]} />
+          {coordExist && (
+            // <MapboxGL.PointAnnotation id="1" coordinate={[lon, lat]} />
+            // <MapboxGL.MarkerView
+            //   coordinate={[lon, lat]}
+            //   anchor={{x: 0.5, y: 0.5}}>
+            //   <View
+            //     style={{
+            //       width: responsiveWidth(10),
+            //       height: responsiveWidth(10),
+            //       backgroundColor: 'transparent',
+            //     }}>
+            //     <MaterialCommunityIcons
+            //       name="map-marker"
+            //       size={responsiveWidth(10)}
+            //       color="#000"
+            //     />
+            //   </View>
+            // </MapboxGL.MarkerView>
+            <MapboxGL.UserLocation
+              showsUserHeadingIndicator
+              // renderMode="native"
+              // androidRenderMode="gps"
+            />
+          )}
 
           <MapboxGL.Camera
-            zoomLevel={12}
+            ref={cameraRef}
+            zoomLevel={zoom}
             centerCoordinate={[lon, lat]}
             heading={0}
             pitch={0}
+            // triggerKey={false}
           />
         </MapboxGL.MapView>
       </View>
 
       <View style={styles.info}>
-        {/* <Pressable
+        <TouchableOpacity
           style={styles.userLocationButtonContainer}
-          onPress={() => alert('User location pressed')}
-        >
-          <MaterialCommunityIcons name='crosshairs-gps' size={responsiveWidth(15)/1.8} color='black' />
-        </Pressable> */}
+          onPress={
+            handleGettingUserLocation
+            // goTo
+          }>
+          <MaterialCommunityIcons
+            name={coordExist ? 'crosshairs-gps' : 'crosshairs-question'}
+            size={responsiveWidth(10 / 2)}
+            color={coordExist ? 'blue' : 'red'}
+          />
+        </TouchableOpacity>
         <View style={styles.info2}>
           <View style={styles.time}>
             <View style={styles.locationSmileyIconContainer}>
@@ -111,18 +249,23 @@ const FoodDeliveryMap = () => {
             </View>
             <View style={styles.addressContainer}>
               <Text style={styles.addressHeader}>Your delivery address</Text>
-              {!address ? (
-                <UIActivityIndicator size={20} color="purple" />
-              ) : (
-                <View style={styles.addressTextContainer}>
+              <View style={styles.addressTextContainer}>
+                {coordExist ? (
                   <Text
                     style={styles.addressText}
                     adjustsFontSizeToFit={true}
                     numberOfLines={1}>
-                    {`${address.slice(0, address.lastIndexOf(','))}`}
+                    {`${address?.slice(0, address.lastIndexOf(','))}`}
                   </Text>
-                </View>
-              )}
+                ) : (
+                  <Text
+                    style={styles.addressText}
+                    adjustsFontSizeToFit={true}
+                    numberOfLines={1}>
+                    not available
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
         </View>
@@ -131,7 +274,14 @@ const FoodDeliveryMap = () => {
   );
 };
 
-export default FoodDeliveryMap;
+const mapStateToProps = store => ({
+  userPosition: store.userState.userPosition,
+  userAddress: store.userState.userAddress,
+});
+
+const mapDispatchToProps = dispatch =>
+  bindActionCreators({fetch_user_address}, dispatch);
+export default connect(mapStateToProps, mapDispatchToProps)(FoodDeliveryMap);
 
 const styles = StyleSheet.create({
   container: {
@@ -151,7 +301,8 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1.5,
-    backgroundColor: 'transparent',
+    width: '100%',
+    backgroundColor: '#fff',
   },
   infoHeader: {
     flexDirection: 'row',
@@ -215,12 +366,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
-    top: -responsiveHeight(10),
-    right: -responsiveWidth(10),
-    width: responsiveWidth(15),
-    height: responsiveWidth(15),
-    borderRadius: responsiveWidth(15) / 2,
+    top: responsiveWidth(-10 * 1.2),
+    right: responsiveWidth(10 / 3.5),
+    width: responsiveWidth(10),
+    height: responsiveWidth(10),
+    borderRadius: responsiveWidth(10 / 2),
     backgroundColor: 'white',
-    zIndex: 999,
+    zIndex: 10,
   },
 });

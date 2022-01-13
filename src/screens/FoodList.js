@@ -19,7 +19,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import {SkypeIndicator} from 'react-native-indicators';
 import {connect} from 'react-redux';
 import {bindActionCreators} from 'redux';
-import {fetch_user_address} from '../../redux/actions';
+import {fetch_user_address, fetch_user_position} from '../../redux/actions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Geolocation from 'react-native-geolocation-service';
 import axios from 'axios';
@@ -202,6 +202,7 @@ const FoodList = ({
   pasta,
   drink,
   fetch_user_address,
+  fetch_user_position,
 }) => {
   const [data, setData] = useState();
   const [tempCategory, setTempCategory] = useState({
@@ -325,6 +326,7 @@ const FoodList = ({
 
   const geo_success = async position => {
     // console.log('posi ***** ==>   ', position);
+    fetch_user_position([position.coords.latitude, position.coords.longitude]);
 
     setReady(true);
 
@@ -345,28 +347,57 @@ const FoodList = ({
       .catch(err => {
         // console.log('errrrrrrorr ====>  ', err);
         ToastAndroid.show(
-          'Fetching address is not possible! check your connection',
+          'Fetching address is not possible!',
           ToastAndroid.LONG,
         );
         setReady(true);
       });
 
     //Set Lat and Long in async storage
-    AsyncStorage.setItem(
-      '@coordinates',
-      `{"latitude":${position.coords.latitude},"longitude":${position.coords.longitude}}`,
-    );
+    // AsyncStorage.setItem(
+    //   '@coordinates',
+    //   `{"latitude":${position.coords.latitude},"longitude":${position.coords.longitude}}`,
+    // );
 
     //**********************************************
   };
 
   // get called when location not retrieved
-  const geo_failure = err => {
-    // console.log('******^^^^  ', err);
-    ToastAndroid.show(
-      'Fetching address is not possible! check your connection',
-      ToastAndroid.LONG,
-    );
+  const geo_failure = error => {
+    switch (error.code) {
+      case 1:
+        ToastAndroid.show(
+          'Location permission is not granted',
+          ToastAndroid.LONG,
+        );
+        break;
+      case 2:
+        ToastAndroid.show('Location provider not available', ToastAndroid.LONG);
+        break;
+      case 3:
+        ToastAndroid.show('Location request timed out', ToastAndroid.LONG);
+        break;
+      case 4:
+        ToastAndroid.show(
+          'Google play service is not installed or has an older version',
+          ToastAndroid.LONG,
+        );
+        break;
+      case 5:
+        ToastAndroid.show(
+          'Location service is not enabled or location mode is not appropriate for the current request',
+          ToastAndroid.LONG,
+        );
+        break;
+      case -1:
+        ToastAndroid.show('Library crashed for some reason', ToastAndroid.LONG);
+        break;
+      default:
+        ToastAndroid.show(
+          'Something went wrong with Geolocation service',
+          ToastAndroid.LONG,
+        );
+    }
   };
 
   const handleLocationPermission = async () => {
@@ -384,16 +415,17 @@ const FoodList = ({
     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
       let geoOptions = {
         enableHighAccuracy: true,
-        timeOut: 60000,
-        maximumAge: 60 * 60 * 24,
+        timeOut: 15000,
+        maximumAge: 10000,
       };
       Geolocation.getCurrentPosition(geo_success, geo_failure, geoOptions);
-    } else {
-      const async_coord = await AsyncStorage.getItem('@coordinates');
-      if (async_coord) {
-        AsyncStorage.removeItem('@coordinates');
-      }
     }
+    // else {
+    //   const async_coord = await AsyncStorage.getItem('@coordinates');
+    //   if (async_coord) {
+    //     AsyncStorage.removeItem('@coordinates');
+    //   }
+    // }
   };
 
   useEffect(() => {
@@ -696,7 +728,7 @@ const mapStateToProps = store => ({
 });
 
 const mapDispatchToProps = dispatch =>
-  bindActionCreators({fetch_user_address}, dispatch);
+  bindActionCreators({fetch_user_address, fetch_user_position}, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(FoodList);
 

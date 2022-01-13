@@ -431,7 +431,7 @@ const RenderProfileView = ({
       />
       <Item
         title="Address"
-        info={userAddress ? userAddress : 'fetching address...'}
+        info={userAddress ? userAddress : 'not available'}
       />
 
       <Shadow
